@@ -1,0 +1,54 @@
+<div class="content">
+  <h1>Offboarding Report</h1>
+
+  <!-- 🔍 Search & Date Filters -->
+  <div class="search-container">
+    <input
+      type="text"
+      [(ngModel)]="searchQuery"
+      (input)="searchEmployee()"
+      placeholder="Search by Last Name or Employee ID..."
+    />
+
+    <!-- 📅 Date Picker -->
+    <input
+      type="date"
+      [(ngModel)]="selectedDate"
+      (change)="searchEmployee()"
+      placeholder="Select Date..."
+    />
+  </div>
+
+  <!-- 📋 Employee Table -->
+  <table class="table-container">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Employee ID</th>
+        <th>Reason for Offboarding</th>
+        <th>Effective Offboarding Date</th>
+        <th>Exit Interview Status</th>
+        <th>Clearance Status</th>
+        <th>Certification</th>
+        <th>Recommendation</th>
+        <th>Comments</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let employee of filteredEmployees">
+        <td><strong>{{ employee.firstname }} {{ employee.middleName }} {{ employee.lastname }}</strong></td>
+        <td><strong>{{ employee.employeeId || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.offboardingReason || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.effectiveDate || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.exitInterview || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.clearanceStatus || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.certificationStatus || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.recommendation || 'N/A' }}</strong></td>
+        <td><strong>{{ employee.recommendationComment || 'N/A' }}</strong></td>
+      </tr>
+      <tr *ngIf="filteredEmployees.length === 0">
+        <td colspan="9" class="no-data">No employees found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

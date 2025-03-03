@@ -1,0 +1,41 @@
+<div class="content">
+  <h1>Onboarding Report</h1>
+
+  <!-- 🔍 Search Bar and Calendar -->
+  <div class="search-container">
+    <input
+      type="text"
+      [(ngModel)]="searchQuery"
+      (input)="searchEmployee()"
+      placeholder="Search by Last Name or Employee ID..."
+    />
+
+    <!-- 📅 Date Picker (Search by Year, Month, or Exact Date) -->
+    <input type="date" [(ngModel)]="selectedDate" (change)="searchEmployee()" />
+  </div>
+
+  <!-- 📋 Employee Table -->
+  <table class="table-container">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Employee ID</th>
+        <th>Department</th>
+        <th>Employment Type</th>
+        <th>Employment Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let employee of filteredEmployees">
+        <td><strong>{{ employee.firstname }} {{ employee.middleName || '' }} {{ employee.lastname }}</strong></td>
+        <td><strong>{{ employee.id }}</strong></td>
+        <td><strong>{{ employee.department }}</strong></td>
+        <td><strong>{{ employee.employmentType }}</strong></td>
+        <td><strong>{{ employee.employmentDate }}</strong></td>
+      </tr>
+      <tr *ngIf="filteredEmployees?.length === 0">
+        <td colspan="5" class="no-data">No employees found.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

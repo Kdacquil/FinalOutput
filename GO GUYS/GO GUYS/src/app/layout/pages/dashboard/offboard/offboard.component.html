@@ -1,0 +1,99 @@
+<div class="offboarding-container">
+  <h4>Offboarding</h4>
+
+  <!-- 🔍 Search Bar -->
+  <div class="search-container">
+    <input
+      type="text"
+      [(ngModel)]="searchQuery"
+      (input)="searchEmployees()"
+      placeholder="Search by Last Name or Employee ID..."
+    />
+
+    <!-- 🔽 Search Results -->
+    <ul class="search-results" *ngIf="searchQuery && filteredEmployees.length > 0">
+      <li *ngFor="let employee of filteredEmployees" (click)="selectEmployee(employee)">
+        {{ employee.lastname }}, {{ employee.firstname }} (ID: {{ employee.id }})
+      </li>
+    </ul>
+  </div>
+
+  <form [formGroup]="offboardForm">
+    <div class="form-container">
+      <div class="section">
+        <div class="form-group">
+          <img [src]="selectedEmployee?.profileImageUrl || 'picpro.jpg'"
+               class="user-icon mx-auto" width="100" height="100" />
+          <label>Name: {{ selectedEmployee?.firstname || '' }} {{ selectedEmployee?.lastname || 'Not Selected' }}</label>
+        </div>
+        <div class="form-group">
+          <label>Employee ID:</label>
+          <input type="text" [value]="selectedEmployee?.id || ''" readonly />
+        </div>
+        <div class="form-group">
+          <label>Effective Date Separated</label>
+          <input type="date" formControlName="effectiveDate" />
+        </div>
+        <div class="form-group">
+          <label>Reason for Offboarding</label>
+          <select formControlName="offboardingReason">
+            <option value="">Select</option>
+            <option value="Resigned">Resigned</option>
+            <option value="Retired">Retired</option>
+            <option value="Not Renewed">Not Renewed</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Clearance Form</label>
+          <select formControlName="clearanceStatus">
+            <option value="">Select</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Certifications</label>
+          <select formControlName="certificationStatus">
+            <option value="">Select</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="form-group">
+          <label>Personal Email:</label>
+          <input type="email" formControlName="personalEmail" placeholder="Email@gmail.com" />
+        </div>
+        <div class="form-group">
+          <label>Exit Interviews</label>
+          <select formControlName="exitInterview">
+            <option value="">Select</option>
+            <option value="Done">Done</option>
+            <option value="Pending">Pending</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Recommendation</label>
+          <select formControlName="recommendation">
+            <option value="">Select</option>
+            <option value="Rehire">Rehire</option>
+            <option value="Not Rehire">Not Rehire</option>
+          </select>
+          <textarea formControlName="recommendationComment" placeholder="Comment..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Automated Notification</label>
+          <select formControlName="automatedNotification">
+            <option value="">Select</option>
+            <option value="Yes">Yes</option>
+            <option value="No">No</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <button (click)="submitForm()">Submit</button>
+</div>

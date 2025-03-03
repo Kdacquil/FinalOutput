@@ -1,0 +1,101 @@
+<div class="onboarding-container">
+  <header>
+    <h4>Onboarding</h4>
+  </header>
+  <form #onboardingForm="ngForm" (ngSubmit)="onSubmit(onboardingForm)" class="onboard-container">
+
+    <div class="onboarding-form w-100">
+      <div class="profile-container mx-auto" (click)="fileInput.click()">
+        <img [src]="profileImage" class="w-25" alt="Profile Picture">
+        <span class="upload-text">Upload Image</span>
+        <input type="file" #fileInput (change)="uploadImage($event)" accept="image/*" hidden>
+      </div>
+    </div>
+
+    <!-- ✅ Employee ID Input Field -->
+    <div class="form-group">
+      <label>Employee ID</label>
+      <input type="text" name="employeeId" [(ngModel)]="formData.id" placeholder="Enter Employee ID" required />
+    </div>
+
+    <div class="form-group">
+      <label>Last Name</label>
+      <input type="text" name="lastname" [(ngModel)]="formData.lastname" placeholder="Enter Last Name" required />
+    </div>
+
+    <div class="form-group">
+      <label>First Name</label>
+      <input type="text" name="firstname" [(ngModel)]="formData.firstname" placeholder="Enter First Name" required />
+    </div>
+
+    <div class="form-group">
+      <label>Middle Name</label>
+      <input type="text" name="middlename" [(ngModel)]="formData.middlename" placeholder="Enter Middle Name" required />
+    </div>
+
+    <div class="form-group">
+      <label>Employee Email</label>
+      <input type="email" name="email" [(ngModel)]="formData.email" placeholder="Enter Email" required />
+    </div>
+
+    <div class="form-group">
+      <label>Employment Date</label>
+      <input type="date" name="employmentDate" [(ngModel)]="formData.employmentDate" required />
+    </div>
+
+    <div class="form-group">
+      <label>Employment Type</label>
+      <select name="employmentType" [(ngModel)]="formData.employmentType" required>
+        <option value="">Select</option>
+        <option value="Full-time">Full-time</option>
+        <option value="Part-time">Part-time</option>
+        <option value="Probation">Probation</option>
+      </select>
+    </div>
+
+    <!-- ✅ Department Selection with Major -->
+    <div class="form-group">
+      <label>Department</label>
+      <select name="department" [(ngModel)]="formData.department" (change)="updateMajors()" required>
+        <option value="">Select</option>
+        <option value="SOC">School Of Computing (SOC)</option>
+        <option value="SBA">School Of Business and Accountancy (SBA)</option>
+        <option value="SEA">School Of Engineering and Architecture (SEA)</option>
+        <option value="SAS">School Of Arts and Sciences (SAS)</option>
+        <option value="SHTM">School Of Hospitality and Tourism Management (SHTM)</option>
+        <option value="SED">School Of Education (SED)</option>
+        <option value="SNAMS">School Of Nursing and Allied Medical Sciences (SNAMS)</option>
+        <option value="CCJEF">College of Criminal Justice Education and Forensics (CCJEF)</option>
+      </select>
+    </div>
+
+    <!-- ✅ Major Selection -->
+    <div class="form-group" *ngIf="availableMajors.length > 0">
+      <label>Major</label>
+      <select name="major" [(ngModel)]="formData.major" required>
+        <option value="">Select</option>
+        <option *ngFor="let major of availableMajors" [value]="major">{{ major }}</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Required Documents Submitted</label>
+      <select name="documentsSubmitted" [(ngModel)]="formData.documentsSubmitted" required>
+        <option value="">Select</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Automated Notification</label>
+      <select name="notification" [(ngModel)]="formData.notification" required>
+        <option value="">Select</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </div>
+
+    <button type="submit" class="add-new-employee">Add This Employee</button>
+  </form>
+</div>
