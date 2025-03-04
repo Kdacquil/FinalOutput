@@ -13,8 +13,11 @@ export class EvaluationComponent implements OnInit {
   employees: any[] = [];
   filteredEmployees: any[] = [];
   selectedEmployee: any = null;
-  evaluationData: any = {};
   evaluationHistory: Evaluation[] = [];
+  evaluatedEmployees: Set<string> = new Set();
+  loading = false;
+  searchQuery: string = '';
+
   evaluationCriteria = [
     { description: 'Possesses necessary credentials and certifications', category: 'QUALIFICATIONS & COMPETENCE', rating: 0, points: 0 },
     { description: 'Demonstrates subject expertise', category: 'QUALIFICATIONS & COMPETENCE', rating: 0, points: 0 },
@@ -40,8 +43,6 @@ export class EvaluationComponent implements OnInit {
     { description: 'Responds well to constructive criticism', category: 'WORK ETHICS & PROFESSIONALISM', rating: 0, points: 0 },
     { description: 'Recommended for continued employment or promotion', category: 'WORK ETHICS & PROFESSIONALISM', rating: 0, points: 0 }
   ];
-  loading = false;
-  searchQuery: string = '';
 
   constructor(
     private onboardingReportService: OnboardingReportService,
@@ -53,118 +54,52 @@ export class EvaluationComponent implements OnInit {
       this.employees = data;
       this.filteredEmployees = [...this.employees];
     });
+
+    this.loadEvaluatedEmployees();
   }
 
   filterEmployees() {
-    const query = this.searchQuery?.toLowerCase() || '';
+    const query = this.searchQuery?.toLowerCase().trim() || '';
+
     this.filteredEmployees = this.employees.filter(emp =>
-      emp.name?.toLowerCase().includes(query)
+      emp.lastname?.toLowerCase().startsWith(query) // Match only the first letter
     );
   }
 
-  // openModal(employee: any) {
-  //   if (!employee?.id) {
-  //     console.error('Employee ID is undefined');
-  //     alert('Employee ID is missing. Please try again.');
-  //     return;
-  //   }
-  //   this.selectedEmployee = { ...employee };
-  //   this.loadEvaluationHistory(employee.id);
-  //   this.evaluationData = {
-  //     employeeId: employee.id,
-  //     employeeName: employee.name,
-  //     criteria: this.evaluationCriteria.map(c => ({ ...c }))
-  //   };
-  // }
-
   openModal(employee: any) {
     if (!employee?.id) {
-      console.error('Employee ID is undefined');
       alert('Employee ID is missing. Please try again.');
       return;
     }
 
-    this.selectedEmployee = { ...employee };
-    this.loadEvaluationHistory(employee.id);
-
-    // Ensure criteria ratings and points reset to 0
-    this.evaluationData = {
-      employeeId: employee.id,
-      employeeName: employee.name,
-      criteria: this.evaluationCriteria.map(c => ({
-        ...c,
-        rating: 0,  // Default rating
-        points: 0   // Default points
-      }))
+    this.selectedEmployee = {
+      ...employee,
+      name: `${employee.firstname} ${employee.lastname}`
     };
+
+    this.loadEvaluationHistory(employee.id);
   }
+
 
 
   closeModal() {
     this.selectedEmployee = null;
+    this.resetForm();
   }
 
-  // loadEvaluationHistory(employeeId: string) {
-  //   if (!employeeId) {
-  //     console.error('Employee ID is undefined');
-  //     alert('Employee ID is missing. Please try again.');
-  //     return;
-  //   }
-  //   this.loading = true;
-  //   this.evaluationService.getEvaluations(employeeId).subscribe((history: Evaluation[]) => {
-  //     this.evaluationHistory = history.map(item => {
-  //       let dateObj = item.date instanceof Date ? item.date : new Date(item.date);
-  //       if (isNaN(dateObj.getTime())) {
-  //         console.error('Invalid date:', item.date);
-  //         dateObj = new Date();
-  //       }
-  //       return {
-  //         ...item,
-  //         date: dateObj
-  //       };
-  //     });
-  //     this.loading = false;
-  //   }, () => this.loading = false);
-  // }
   loadEvaluationHistory(employeeId: string) {
-    if (!employeeId) {
-      console.error('Employee ID is undefined');
-      alert('Employee ID is missing. Please try again.');
-      return;
-    }
+    if (!employeeId) return;
 
     this.loading = true;
     this.evaluationService.getEvaluations(employeeId).subscribe(
       (history: Evaluation[]) => {
-        console.log('Received history from Firestore:', history);
-
-        this.evaluationHistory = history.map(item => {
-          let dateObj: Date;
-
-          if (item.date instanceof Timestamp) {
-            dateObj = item.date.toDate(); // Convert Firestore Timestamp to JavaScript Date
-          } else if (item.date instanceof Date) {
-            dateObj = item.date; // Already a valid JavaScript Date
-          } else if (typeof item.date === 'string') {
-            dateObj = new Date(item.date); // Convert string to Date
-          } else {
-            console.warn('Invalid date detected:', item.date);
-            dateObj = new Date(0); // Use a default Date instead of null
-          }
-
-          return {
-            ...item,
-            date: dateObj, // Ensures type remains Date
-          };
-        });
-
-
+        this.evaluationHistory = history.map(item => ({
+          ...item,
+          date: item.date instanceof Timestamp ? item.date.toDate() : new Date(item.date),
+        }));
         this.loading = false;
       },
-      (error) => {
-        console.error('Error fetching evaluation history:', error);
-        this.loading = false;
-      }
+      () => (this.loading = false)
     );
   }
 
@@ -174,32 +109,61 @@ export class EvaluationComponent implements OnInit {
     criterion.points = rating;
   }
 
+  validateForm(): boolean {
+    return this.evaluationCriteria.every(c => c.rating > 0);
+  }
+
+  submitEvaluation() {
+    if (!this.selectedEmployee?.id) return;
+
+    if (this.evaluatedEmployees.has(this.selectedEmployee.id)) {
+      alert('You have already evaluated this employee.');
+      return;
+    }
+
+    if (!this.validateForm()) {
+      alert('Please answer all evaluation questions before submitting.');
+      return;
+    }
+
+    const evaluation: Evaluation = {
+      employeeId: this.selectedEmployee.id,
+      employeeName: `${this.selectedEmployee.firstname} ${this.selectedEmployee.lastname}`,
+      criteria: this.evaluationCriteria.map(c => ({
+        description: c.description,
+        rating: c.rating,
+        points: c.points,
+        category: c.category
+      })),
+      totalPoints: this.calculateTotalPoints(),
+      date: new Date()
+    };
+
+    this.loading = true;
+    this.evaluationService.saveEvaluation(evaluation)
+      .then(() => {
+        alert('Evaluation saved successfully!');
+        this.evaluatedEmployees.add(this.selectedEmployee.id);
+        this.closeModal();
+      })
+      .catch(() => alert('Failed to save evaluation.'))
+      .finally(() => (this.loading = false));
+  }
+
   calculateTotalPoints(): number {
     return this.evaluationCriteria.reduce((sum, c) => sum + c.points, 0);
   }
 
-  submitEvaluation() {
-    if (!this.selectedEmployee?.id) {
-      console.error('Selected employee ID is undefined');
-      alert('Cannot submit evaluation without a valid employee ID.');
-      return;
-    }
-    this.loading = true;
-    const evaluation: Evaluation = {
-      employeeId: this.selectedEmployee.id,
-      employeeName: this.selectedEmployee.name,
-      criteria: this.evaluationCriteria.map(c => ({ description: c.description, rating: c.rating, points: c.points, category: c.category })),
-      totalPoints: this.calculateTotalPoints(),
-      date: new Date()
-    };
-    this.evaluationService.saveEvaluation(evaluation).then(() => {
-      alert('Evaluation saved successfully!');
-      this.closeModal();
-    }).catch(error => {
-      console.error('Error saving evaluation:', error);
-      alert('Failed to save evaluation. Please try again later.');
-    }).finally(() => {
-      this.loading = false;
+  resetForm() {
+    this.evaluationCriteria.forEach(criterion => {
+      criterion.rating = 0;
+      criterion.points = 0;
+    });
+  }
+
+  loadEvaluatedEmployees() {
+    this.evaluationService.getUserEvaluatedEmployees().subscribe((evaluated: Iterable<string> | null | undefined) => {
+      this.evaluatedEmployees = new Set(evaluated);
     });
   }
 }

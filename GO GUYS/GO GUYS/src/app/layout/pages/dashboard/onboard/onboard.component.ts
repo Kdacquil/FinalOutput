@@ -4,6 +4,22 @@ import { AngularFireStorage } from '@angular/fire/compat/storage';
 import { NgForm } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 
+interface Employee {
+  id: string;
+  lastname: string;
+  firstname: string;
+  middlename: string;
+  email: string;
+  employmentDate: string;
+  employmentType: string;
+  department: string;
+  major: string;
+  notification: string;
+  profileImageUrl: string;
+  documentsSubmitted: string;
+  timestamp: string;
+}
+
 @Component({
   selector: 'app-onboard',
   templateUrl: './onboard.component.html',
@@ -14,13 +30,13 @@ export class OnboardComponent {
   @ViewChild('fileInput') fileInput!: ElementRef;
   profileImage: string = 'picpro.jpg'; // Default profile image
   availableMajors: string[] = []; // Stores majors based on selected department
+  employees: Employee[] = []; // Stores employees from Firestore
 
-  formData = {
+  formData: Employee = {
     id: '',
     lastname: '',
     firstname: '',
     middlename: '',
-    personalEmail: '',
     email: '',
     employmentDate: '',
     employmentType: '',
@@ -29,16 +45,26 @@ export class OnboardComponent {
     notification: '',
     profileImageUrl: '',
     documentsSubmitted: '',
+    timestamp: new Date().toISOString()
   };
 
   constructor(
     private firestore: AngularFirestore,
     private storage: AngularFireStorage
-  ) {}
+  ) {
+    this.fetchEmployees();
+  }
 
-  /**
-   * ✅ Updates available majors when department is selected
-   */
+  fetchEmployees() {
+    this.firestore.collection<Employee>('employees', ref => ref.orderBy('timestamp'))
+      .valueChanges()
+      .subscribe(data => {
+        this.employees = data;
+      }, error => {
+        console.error('Error fetching employees:', error);
+      });
+  }
+
   updateMajors() {
     const majorsByDepartment: { [key: string]: string[] } = {
       SOC: [
@@ -70,21 +96,17 @@ export class OnboardComponent {
         'Bachelor of Science in Mechanical Engineering',
         'Bachelor of Science in Computer Engineering',
         'Bachelor of Science in Electronics Communication Engineering',
-        'Bachelor of Science in Industrial Engineering',
+        'Bachelor of Science in Industrial Engineering'
       ],
       SHTM: [
-        'Bachelor of Science in Hospitality Management -Accomodations and Lodging Operations -Culinary Arts and Kitchen Operations -Restaurant and Food Services Operations ',
-        'Bachelor of Science in Tourism Management -Travel and Tour Operations -Destination Management -Events Management  ',
-        'Bachelor of Science in International Gastronomy',
-
+        'Bachelor of Science in Hospitality Management -Accommodations and Lodging Operations -Culinary Arts and Kitchen Operations -Restaurant and Food Services Operations',
+        'Bachelor of Science in Tourism Management -Travel and Tour Operations -Destination Management -Events Management',
+        'Bachelor of Science in International Gastronomy'
       ],
       SNAMS: [
         'Bachelor of Science in Nursing',
         'Bachelor of Science in Radiologic Technology',
-        'Bachelor of Science in Medical Technology',
-
-
-
+        'Bachelor of Science in Medical Technology'
       ],
       CCJEF: [
         'Bachelor of Science in Criminology',
@@ -99,9 +121,7 @@ export class OnboardComponent {
         'Bachelor of Secondary Education Major in Mathematics',
         'Bachelor of Secondary Education Major in Science',
         'Bachelor of Secondary Education Major in Social Studies',
-        'Bachelor of Secondary Education Major in Religious and Values',
-        'Education'
-
+        'Bachelor of Secondary Education Major in Religious and Values Education'
       ],
       SAS: [
         'Bachelor of Arts in Communication',
@@ -113,9 +133,6 @@ export class OnboardComponent {
     this.availableMajors = majorsByDepartment[this.formData.department] || [];
   }
 
-  /**
-   * ✅ Upload the profile image to Firebase Storage
-   */
   uploadImage(event: any) {
     const file = event.target.files[0];
     if (file) {
@@ -134,41 +151,38 @@ export class OnboardComponent {
     }
   }
 
-  /**
-   * ✅ Handle form submission and prevent duplicate Employee ID & Name
-   */
   async onSubmit(form: NgForm) {
     if (form.valid) {
       try {
         const fullName = `${this.formData.firstname} ${this.formData.middlename} ${this.formData.lastname}`.trim();
 
-        // ✅ Check if Employee ID or Name already exists in Firestore
         const existingEmployeesSnapshot = await this.firestore.collection('employees').ref.get();
-
         let isDuplicate = false;
         existingEmployeesSnapshot.forEach(doc => {
-          const data = doc.data() as { id: string; firstname: string; middlename: string; lastname: string }; // 🔹 FIXED: Explicitly cast `data`
-
-          if (data.id === this.formData.id || `${data.firstname} ${data.middlename} ${data.lastname}`.trim() === fullName) {
+          const data = doc.data() as Employee | undefined;
+          if (data && (data.id === this.formData.id || `${data.firstname} ${data.middlename} ${data.lastname}`.trim() === fullName)) {
             isDuplicate = true;
           }
         });
 
         if (isDuplicate) {
-          alert('❌ Employee ID or Name already exists! Please enter unique details.');
+          alert('❌ Employee ID or Name already exists!');
           return;
         }
 
-        // ✅ Save the Employee Data in Firestore
-        await this.firestore.collection('employees').doc(this.formData.id).set(this.formData);
+        await this.firestore.collection('employees').doc(this.formData.id).set({
+          ...this.formData,
+          timestamp: new Date().toISOString()
+        });
 
-        alert(`✅ Employee onboarded successfully! Assigned ID: ${this.formData.id}`);
+        alert(`✅ Employee onboarded successfully!`);
         form.resetForm();
         this.profileImage = 'picpro.jpg';
+        this.fetchEmployees(); // Refresh the employee list after adding
 
       } catch (error) {
-        console.error('❌ Error in form submission:', error);
-        alert('❌ Error saving employee data. Please try again.');
+        console.error('❌ Error:', error);
+        alert('❌ Error saving employee data.');
       }
     } else {
       alert('⚠️ Please fill out all required fields.');

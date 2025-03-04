@@ -28,7 +28,7 @@
     </thead>
     <tbody>
       <tr *ngFor="let employee of filteredEmployees">
-        <td><strong>{{ employee.name }}</strong></td>
+        <td><strong>{{ employee.firstname }} {{ employee.lastname }}</strong></td>
         <td><button class="btn btn-outline-dark" (click)="openModal(employee)">Evaluate</button></td>
       </tr>
     </tbody>

@@ -5,6 +5,9 @@ import { Evaluation } from '../interfaces/evaluation.interface';
 
 @Injectable({ providedIn: 'root' })
 export class EvaluationService {
+  getUserEvaluatedEmployees: any;
+  markEmployeeAsEvaluated: any;
+  hasUserEvaluatedEmployee: any;
   constructor(private firestore: AngularFirestore) {}
 
   saveEvaluation(evaluation: Evaluation) {

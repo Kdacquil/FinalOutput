@@ -5,19 +5,21 @@
       <table>
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Employment Type</th>
-                <th>Deployment Date</th>
-
+              <th>Name</th>
+              <th>Email</th>
+              <th>Major</th>
+              <th>Employment Type</th>
+              <th>Employment Date</th>
             </tr>
         </thead>
         <tbody>
             <tr  *ngFor="let employee of filteredEmployees">
-              <td> {{ employee.name }}</td>
-              <td> {{ employee.email }}</td>
-              <td> {{ employee.employmentType }}</td>
-              <td> {{ employee.employmentDate }}</td>
+                <td>{{ employee.firstname }} {{ employee.middleName || '' }} {{ employee.lastname }}</td>
+                <td>{{ employee.email }}</td>
+                <td>{{ employee.major }}</td>
+                <td>{{ employee.employmentType }}</td>
+                <td>{{ employee.employmentDate }}</td>
+            </tr>
         </tbody>
     </table>
 </div>
