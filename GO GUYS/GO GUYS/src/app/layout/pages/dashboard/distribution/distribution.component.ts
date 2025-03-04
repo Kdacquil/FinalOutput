@@ -1,6 +1,6 @@
 import { Component, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { Chart } from 'chart.js/auto';
-import { Router, NavigationEnd } from '@angular/router';
+import { AngularFirestore } from '@angular/fire/compat/firestore';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -10,39 +10,39 @@ import { Subscription } from 'rxjs';
 })
 export class DistributionComponent implements AfterViewInit, OnDestroy {
   @ViewChild('departmentDistribution') departmentChartRef!: ElementRef;
-  @ViewChild('employmentStatus') employmentChartRef!: ElementRef;
-
   chartDepartment: Chart | null = null;
-  chartEmployment: Chart | null = null;
   showContent = true;
-  private routerSubscription!: Subscription;
+  private dataSubscription!: Subscription;
 
-  constructor(private router: Router) {}
+  // Predefined departments to ensure consistency
+  private departmentLabels = ['SBA', 'SEA', 'SOC', 'SAS', 'SNAMS', 'SED', 'SHTM', 'CCJEF'];
 
-  ngOnInit(): void {
-    this.routerSubscription = this.router.events.subscribe(event => {
-      if (event instanceof NavigationEnd) {
-        this.showContent = this.router.url === '/dashboard/distribution';
+  constructor(private firestore: AngularFirestore) {}
 
-        if (this.showContent) {
-          setTimeout(() => {
-            this.destroyCharts(); // Ensure charts are destroyed before rendering
-            this.renderDepartmentDistribution();
-            this.renderEmploymentStatus();
-          }, 0);
-        }
-      }
+  ngAfterViewInit(): void {
+    // Subscribe to real-time updates from Firestore
+    this.dataSubscription = this.firestore.collection('employees').valueChanges().subscribe(data => {
+      this.updateChart(data);
     });
   }
 
-  ngAfterViewInit(): void {
-    if (this.showContent) {
-      this.renderDepartmentDistribution();
-      this.renderEmploymentStatus();
-    }
-  }
+  updateChart(data: any[]) {
+    const departmentCounts: { [key: string]: number } = {};
 
-  renderDepartmentDistribution() {
+    // Initialize department counts to 0
+    this.departmentLabels.forEach(dept => departmentCounts[dept] = 0);
+
+    // Count employees per department
+    data.forEach((employee: any) => {
+      const department = employee.department;
+      if (this.departmentLabels.includes(department)) {
+        departmentCounts[department] += 1;
+      }
+    });
+
+    const labels = this.departmentLabels;
+    const values = this.departmentLabels.map(dept => departmentCounts[dept]);
+
     if (this.chartDepartment) {
       this.chartDepartment.destroy();
     }
@@ -52,91 +52,26 @@ export class DistributionComponent implements AfterViewInit, OnDestroy {
       this.chartDepartment = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ['SBA', 'SEA', 'SOC', 'SAS', 'SNAMS', 'SED', 'SHTM', 'CCJEF'],
+          labels,
           datasets: [{
-            data: [20, 30, 25, 10, 15, 10, 45, 30],
+            data: values,
             backgroundColor: ['#cc9933', '#cc3300', '#FF9900', '#663333', '#006600', '#003366', '#cc3366', '#800080']
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
-          onClick: (event, elements) => {
-            if (elements.length > 0 && this.chartDepartment?.data?.labels) {
-              const index = elements[0].index;
-              const label = this.chartDepartment.data.labels[index] as string;
-              this.navigateToRoute(label);
-            }
-          }
+          maintainAspectRatio: false
         }
       });
-    }
-  }
-
-  renderEmploymentStatus() {
-    if (this.chartEmployment) {
-      this.chartEmployment.destroy();
-    }
-
-    if (this.employmentChartRef?.nativeElement) {
-      const ctx = this.employmentChartRef.nativeElement as HTMLCanvasElement;
-      this.chartEmployment = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: ['Full-Time', 'Part-Time', 'Contract', 'Probation'],
-          datasets: [{
-            label: 'Count',
-            data: [60, 25, 15, 10],
-            backgroundColor: ['#FF9800', '#d96459', '#4CAF50', '#f2e394']
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          onClick: (event, elements) => {
-            if (elements.length > 0 && this.chartEmployment?.data?.labels) {
-              const index = elements[0].index;
-              const label = this.chartEmployment.data.labels[index] as string;
-              this.navigateToRoute(label);
-            }
-          }
-        }
-      });
-    }
-  }
-
-  navigateToRoute(label: string) {
-    const routes: { [key: string]: string } = {
-      'SBA': '/dashboard/distribution/sba',
-      'SEA': '/dashboard/distribution/sea',
-      'SOC': '/dashboard/distribution/soc',
-      'SAS': '/dashboard/distribution/sas',
-      'SNAMS': '/dashboard/distribution/snams',
-      'SED': '/dashboard/distribution/sed',
-      'SHTM': '/dashboard/distribution/shtm',
-      'CCJEF': '/dashboard/distribution/ccjef'
-    };
-
-    if (routes[label]) {
-      this.router.navigateByUrl(routes[label]);
-    }
-  }
-
-  destroyCharts() {
-    if (this.chartDepartment) {
-      this.chartDepartment.destroy();
-      this.chartDepartment = null;
-    }
-    if (this.chartEmployment) {
-      this.chartEmployment.destroy();
-      this.chartEmployment = null;
     }
   }
 
   ngOnDestroy(): void {
-    this.destroyCharts();
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
+    if (this.dataSubscription) {
+      this.dataSubscription.unsubscribe();
+    }
+    if (this.chartDepartment) {
+      this.chartDepartment.destroy();
     }
   }
 }
